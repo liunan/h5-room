@@ -1,0 +1,98 @@
+<html>
+
+<head>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/0.3.9/peer.min.js"></script>
+</head>
+
+<body>
+    
+    <label id="myID"></label>
+    <form>
+        <textarea id="msg"></textarea>
+        <button type="submit">发送</button>
+    </form>
+    <pre id="recv"></pre>
+
+    <script>
+
+        window.onload = () => {
+            /*
+            var peer = new Peer(undefined,{host:'127.0.0.1',
+                port:9000,
+                path:'/CONN'
+            });
+            */
+            var peer = new Peer();
+            var conn = undefined;
+
+            peer.on('error', function (err) {
+                alert('' + err)
+            });
+
+            peer.on('open', function (id) {
+                    console.log('My peer ID is: ' + id);
+                    document.getElementById("myID").innerText =`端ID:${id}`;
+
+                });
+            if (location.hash) {
+                // 加入房间者，connector
+                console.log(`connecting to ${location.hash.substr(1)}`);
+                conn = peer.connect(location.hash.substr(1));
+
+
+                conn.on('open', function () {
+                    console.log(`connected to ${location.hash.substr(1)}`);
+                    // Send messages
+                    conn.send('Hello from guest!');
+
+
+                    // Receive messages
+                    conn.on('data', function (data) {
+                        console.log(`connector rec ${data}`);
+                        document.querySelector('#recv').textContent = data;
+                    });
+
+                    conn.on('close', () => {
+                        console.log('close current connection');
+                    })
+
+                    conn.on('error', (err) => {
+                        alert(`connection err ${err}`);
+                    })
+                });
+
+            } else {
+
+                // 开房者，initiator          
+                peer.on('connection', function (c) {
+                    conn = c;
+                    console.log(`connection established`);
+
+
+                    conn.on('open', () => {
+                        console.log(`connection is ready for use`);
+
+                        conn.send('hello from hoster');
+                    })
+
+                    conn.on('data', function (data) {
+                        console.log('Initiator Received', data);
+
+                        document.querySelector('#recv').textContent = data;
+                    });
+                });
+
+            }
+
+            // 发送按钮事件
+            document.querySelector('form').addEventListener('submit', function (ev) {
+                ev.preventDefault()
+                conn.send(document.querySelector('#msg').value);
+            })
+
+        }
+    </script>
+</body>
+
+</html>
